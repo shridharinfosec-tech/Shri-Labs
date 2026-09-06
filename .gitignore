@@ -1,0 +1,20 @@
+# ---- python cache ----
+__pycache__/
+*.pyc
+
+# ---- temp / build ----
+*.tmp
+*.zip
+
+# ---- runtime / per-user data in any module (created when a portal runs) ----
+**/.lab/users.json
+**/.lab/sessions.json
+**/.lab/state.json
+**/.lab/progress/
+
+# ---- trainer-only: solutions contain flags, kept OUT of the repo ----
+**/trainer-solutions.md
+
+# ---- OS / editor junk ----
+.DS_Store
+Thumbs.db

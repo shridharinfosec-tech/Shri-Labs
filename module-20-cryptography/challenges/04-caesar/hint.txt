@@ -1,0 +1,2 @@
+A Caesar cipher has only 25 keys - try every shift.
+CyberChef: 'ROT13 Brute Force'.  Or brute-force in one line of Python.

@@ -1,0 +1,21 @@
+# --- runtime / per-user data (created when the portal runs) ---
+.lab/users.json
+.lab/sessions.json
+.lab/state.json
+.lab/progress/
+*.tmp
+
+# --- python cache ---
+__pycache__/
+*.pyc
+
+# --- trainer-only: contains every flag, kept OUT of the repo by default ---
+trainer-solutions.md
+
+# --- built trainee bundles ---
+*-trainee-*.zip
+lab-cryptography-m20-trainee-*.zip
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db

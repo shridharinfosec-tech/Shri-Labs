@@ -1,0 +1,4 @@
+One of the two files was tampered with. They look almost identical.
+1) sha256sum original.txt tampered.txt  (the hashes differ)
+2) diff them to see what changed (report it).
+3) Prove you computed it: python3 unlock.py <sha256-of-tampered.txt>

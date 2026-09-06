@@ -1,0 +1,2 @@
+AES-256 in CBC mode. You have the key and IV (key.txt).
+openssl enc -d -aes-256-cbc  with  -K (key)  -iv (iv)  -in  -out

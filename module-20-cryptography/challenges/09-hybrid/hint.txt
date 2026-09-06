@@ -1,0 +1,5 @@
+Hybrid encryption (the TLS pattern):
+ - session_key.enc = an AES key encrypted with RSA.
+ - data.enc        = the data, encrypted with AES-256-CBC using that key.
+1) RSA-decrypt session_key.enc with private.pem -> a 64-hex AES key.
+2) AES-decrypt data.enc with that key (-K) and the IV in iv.txt.

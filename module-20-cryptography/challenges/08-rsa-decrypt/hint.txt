@@ -1,0 +1,3 @@
+message.enc was encrypted with an RSA public key. You hold the matching
+PRIVATE key (private.pem) - use it to decrypt.
+openssl pkeyutl -decrypt -inkey private.pem -in message.enc

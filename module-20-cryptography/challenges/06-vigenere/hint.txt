@@ -1,0 +1,2 @@
+This is a Vigenere cipher and you have the keyword (key.txt).
+CyberChef: 'Vigenere Decode' and paste the key.  Or decrypt in Python.

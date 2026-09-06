@@ -1,0 +1,2 @@
+This is hexadecimal (0-9, a-f). Convert it back to text.
+CyberChef: 'From Hex'.  Terminal: pipe it through xxd -r -p.

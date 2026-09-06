@@ -1,0 +1,2 @@
+This is Base64, not encryption. Decode it... then notice the result is
+STILL Base64, so decode again.  CyberChef: 'From Base64' (x2), or the terminal.

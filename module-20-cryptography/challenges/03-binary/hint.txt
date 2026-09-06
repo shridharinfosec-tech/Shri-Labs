@@ -1,0 +1,2 @@
+Every 8-bit group is one ASCII character. Convert binary -> text.
+CyberChef: 'From Binary'.  Or a couple of lines of Python.
