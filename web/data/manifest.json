@@ -1,0 +1,485 @@
+{
+  "batch": "SEP2026-A",
+  "generated": "2026-09-06 18:15:10",
+  "salt": "064c8d59b5abddc6482081be45058251",
+  "pbkdf2_iters": 100000,
+  "categories": [
+    "Encoding & Decoding",
+    "Classical Ciphers",
+    "Encryption & Decryption",
+    "Hashing & Integrity"
+  ],
+  "challenges": [
+    {
+      "id": "01",
+      "slug": "01-base64",
+      "title": "Base64 Decoding",
+      "section": "Section 1 - Encoding vs Encryption",
+      "difficulty": 1,
+      "tools": [
+        "CyberChef",
+        "base64"
+      ],
+      "brief": "An API token that is Base64-encoded (twice). No key needed - decode it to read the data.",
+      "files": [
+        "token.txt"
+      ],
+      "hint": "This is Base64, not encryption. Decode it... then notice the result is\nSTILL Base64, so decode again.  CyberChef: 'From Base64' (x2), or the terminal.\n",
+      "flag_pbkdf2": "b2ce1f00ffdb8bbb3fed65170d92ab5b8b19824d076964c0029f7ebb60896654",
+      "category": "Encoding & Decoding",
+      "scenario": "During a web-application assessment you intercept an API request whose body is an opaque-looking string. It is not encrypted - it is Base64-encoded, and in fact encoded twice. Because Base64 has no key, you can simply decode it and read the data it carries.",
+      "objective": "Decode the Base64 token (it is double-encoded) and read the flag inside.",
+      "est_time": "~5 min",
+      "steps": [
+        {
+          "title": "Inspect the token",
+          "desc": "It uses only A-Z a-z 0-9 + / with '=' padding - the classic Base64 alphabet.",
+          "cmd": "cat token.txt"
+        },
+        {
+          "title": "Decode the first Base64 layer",
+          "desc": "The output will still look like Base64 - that is expected, it was encoded twice.",
+          "cmd": "base64 -d token.txt"
+        },
+        {
+          "title": "Decode the second layer",
+          "desc": "Pipe the first decode into base64 again to reach the plaintext and the SIS{...} flag.",
+          "cmd": "base64 -d token.txt | base64 -d"
+        },
+        {
+          "title": "CyberChef alternative",
+          "desc": "Drop the token in and chain 'From Base64' twice, or use the 'Magic' operation to auto-detect.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "slug": "02-hex",
+      "title": "Hex Decoding",
+      "section": "Section 1 - Encoding vs Encryption",
+      "difficulty": 1,
+      "tools": [
+        "CyberChef",
+        "xxd"
+      ],
+      "brief": "A value stored as a hexadecimal string. Convert it straight back to readable text.",
+      "files": [
+        "value.hex"
+      ],
+      "hint": "This is hexadecimal (0-9, a-f). Convert it back to text.\nCyberChef: 'From Hex'.  Terminal: pipe it through xxd -r -p.\n",
+      "flag_pbkdf2": "ad6c0ebe3e7abfb60b6d04465fb3eaf470e8a2e6d65c66f27b49c35093036d90",
+      "category": "Encoding & Decoding",
+      "scenario": "A configuration file stores a value as a long hexadecimal string. Hex is an encoding (each byte written as two characters 0-9 a-f), not a cipher, so it converts straight back to readable text.",
+      "objective": "Convert the hex string back to ASCII and read the flag.",
+      "est_time": "~5 min",
+      "steps": [
+        {
+          "title": "Look at the value",
+          "desc": "Only characters 0-9 and a-f, an even number of them - that is hexadecimal.",
+          "cmd": "cat value.hex"
+        },
+        {
+          "title": "Convert hex to text",
+          "desc": "xxd -r -p reverses a plain hex dump back to raw bytes.",
+          "cmd": "xxd -r -p value.hex"
+        },
+        {
+          "title": "CyberChef alternative",
+          "desc": "Use the 'From Hex' operation to get the same result in the browser.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "slug": "03-binary",
+      "title": "Binary Decoding",
+      "section": "Section 1 - Encoding vs Encryption",
+      "difficulty": 2,
+      "tools": [
+        "CyberChef",
+        "python3"
+      ],
+      "brief": "A raw bit-stream where every 8 bits is one ASCII character. Convert binary back to text.",
+      "files": [
+        "bits.txt"
+      ],
+      "hint": "Every 8-bit group is one ASCII character. Convert binary -> text.\nCyberChef: 'From Binary'.  Or a couple of lines of Python.\n",
+      "flag_pbkdf2": "dbceea474ab624a215895e0c0c96ee52204120ff8a0edf6488c3ffcf41b80afd",
+      "category": "Encoding & Decoding",
+      "scenario": "A device log records one of its fields as a raw bit-stream. Each group of eight bits is one ASCII character, so the stream converts directly back to text.",
+      "objective": "Convert the 8-bit binary groups back to ASCII and read the flag.",
+      "est_time": "~5 min",
+      "steps": [
+        {
+          "title": "Inspect the stream",
+          "desc": "Space-separated groups of eight 1s and 0s - one byte each.",
+          "cmd": "cat bits.txt"
+        },
+        {
+          "title": "Convert binary to text",
+          "desc": "Turn every 8-bit group into its character.",
+          "cmd": "python3 -c \"print(''.join(chr(int(b,2)) for b in open('bits.txt').read().split()))\""
+        },
+        {
+          "title": "CyberChef alternative",
+          "desc": "Use 'From Binary' (delimiter: Space) to decode it in the browser.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "slug": "04-caesar",
+      "title": "Caesar Cipher",
+      "section": "Section 4 - Cryptographic Algorithms",
+      "difficulty": 1,
+      "tools": [
+        "CyberChef",
+        "python3"
+      ],
+      "brief": "A note shifted with a Caesar cipher. Only 25 keys exist - brute-force them all.",
+      "files": [
+        "ciphertext.txt"
+      ],
+      "hint": "A Caesar cipher has only 25 keys - try every shift.\nCyberChef: 'ROT13 Brute Force'.  Or brute-force in one line of Python.\n",
+      "flag_pbkdf2": "e1c05672dcba0c6be6dc3f2957a7918a28d3537bd30017685ae14701e3e62580",
+      "category": "Classical Ciphers",
+      "scenario": "An old in-house application 'protects' a note with a Caesar cipher - every letter shifted by a fixed amount. With only 25 possible shifts, brute force recovers the note in seconds. This is why classical ciphers were abandoned for real algorithms.",
+      "objective": "Brute-force the Caesar shift and read the flag inside the recovered message.",
+      "est_time": "~5 min",
+      "steps": [
+        {
+          "title": "Read the ciphertext",
+          "desc": "Readable letters, just shifted by an unknown fixed amount.",
+          "cmd": "cat ciphertext.txt"
+        },
+        {
+          "title": "Try all 25 shifts",
+          "desc": "One of the 25 lines will turn into plain English ending in a SIS{...} flag.",
+          "cmd": "python3 - <<'EOF'\ns=open('ciphertext.txt').read()\nfor k in range(1,26):\n    print(k, ''.join(chr((ord(c)-65-k)%26+65) if c.isupper() else chr((ord(c)-97-k)%26+97) if c.islower() else c for c in s))\nEOF"
+        },
+        {
+          "title": "CyberChef alternative",
+          "desc": "Use 'ROT13 Brute Force' and read the line that becomes English.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "05",
+      "slug": "05-atbash",
+      "title": "Atbash Cipher",
+      "section": "Section 4 - Cryptographic Algorithms",
+      "difficulty": 1,
+      "tools": [
+        "CyberChef",
+        "python3"
+      ],
+      "brief": "A message hidden with Atbash (the alphabet reversed). Apply it again to decode.",
+      "files": [
+        "ciphertext.txt"
+      ],
+      "hint": "This is the Atbash cipher: the alphabet reversed (A<->Z, B<->Y ...).\nAtbash is its own inverse - apply it again to decode.\nCyberChef: 'Atbash Cipher'.\n",
+      "flag_pbkdf2": "f6d85c0acc4d81b872bb635ccc8a613a90100d4090db65fe429babb1a829e0ba",
+      "category": "Classical Ciphers",
+      "scenario": "A message was obfuscated with the Atbash cipher, which replaces each letter with its mirror in the alphabet (A becomes Z, B becomes Y). Atbash is its own inverse, so applying it a second time reveals the text.",
+      "objective": "Undo the Atbash substitution and read the flag.",
+      "est_time": "~5 min",
+      "steps": [
+        {
+          "title": "Read the ciphertext",
+          "desc": "A monoalphabetic substitution - each letter mapped to its alphabet mirror.",
+          "cmd": "cat ciphertext.txt"
+        },
+        {
+          "title": "Apply Atbash again to decode",
+          "desc": "Mirroring the alphabet a second time restores the original text.",
+          "cmd": "python3 -c \"print(''.join(chr(219-ord(c)) if 'a'<=c<='z' else chr(155-ord(c)) if 'A'<=c<='Z' else c for c in open('ciphertext.txt').read()))\""
+        },
+        {
+          "title": "CyberChef alternative",
+          "desc": "Use the 'Atbash Cipher' operation.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "06",
+      "slug": "06-vigenere",
+      "title": "Vigenere Cipher",
+      "section": "Section 4 - Cryptographic Algorithms",
+      "difficulty": 2,
+      "tools": [
+        "CyberChef",
+        "python3"
+      ],
+      "brief": "A Vigenere-encrypted message. You have the keyword - use it to decrypt.",
+      "files": [
+        "ciphertext.txt",
+        "key.txt"
+      ],
+      "hint": "This is a Vigenere cipher and you have the keyword (key.txt).\nCyberChef: 'Vigenere Decode' and paste the key.  Or decrypt in Python.\n",
+      "flag_pbkdf2": "ae67ba82a8055eb6c6083b2c6c4e9e49a92503875c83abdc84408158a0c254db",
+      "category": "Classical Ciphers",
+      "scenario": "A message was encrypted with the Vigenere cipher, which shifts each letter by a varying amount driven by a repeating keyword. During the assessment you already recovered the keyword, so decryption is straightforward.",
+      "objective": "Use the recovered keyword to decrypt the Vigenere ciphertext and read the flag.",
+      "est_time": "~7 min",
+      "steps": [
+        {
+          "title": "Read the ciphertext and keyword",
+          "desc": "The keyword is in key.txt.",
+          "cmd": "cat ciphertext.txt key.txt"
+        },
+        {
+          "title": "Decrypt with the keyword",
+          "desc": "Subtract the keyword's letter shifts to recover the plaintext.",
+          "cmd": "python3 - <<'EOF'\nkey='KEYWORD'   # <- put the keyword from key.txt here (lowercase)\nct=open('ciphertext.txt').read(); out=[]; ki=0\nfor c in ct:\n    if c.isalpha():\n        k=ord(key[ki%len(key)].lower())-97; b=65 if c.isupper() else 97\n        out.append(chr((ord(c)-b-k)%26+b)); ki+=1\n    else: out.append(c)\nprint(''.join(out))\nEOF"
+        },
+        {
+          "title": "CyberChef alternative",
+          "desc": "Use 'Vigenere Decode' and paste the keyword from key.txt.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "07",
+      "slug": "07-aes-decrypt",
+      "title": "AES-256-CBC Decrypt",
+      "section": "Section 5 - Symmetric Key Cryptography",
+      "difficulty": 2,
+      "tools": [
+        "openssl"
+      ],
+      "brief": "An AES-256-CBC file with the key and IV supplied. Decrypt it with OpenSSL.",
+      "files": [
+        "secret.enc",
+        "key.txt"
+      ],
+      "hint": "AES-256 in CBC mode. You have the key and IV (key.txt).\nopenssl enc -d -aes-256-cbc  with  -K (key)  -iv (iv)  -in  -out\n",
+      "flag_pbkdf2": "dc4b2a6811b3f633a72ac00d4f2a8367a10f836647cbb19d6213cffef7e86eae",
+      "category": "Encryption & Decryption",
+      "scenario": "You recovered an AES-256-CBC encrypted file from a misconfigured backup, along with the key and initialisation vector that were stored next to it. With the key material in hand, OpenSSL decrypts it directly.",
+      "objective": "Decrypt secret.enc with the supplied key and IV, then read the flag.",
+      "est_time": "~7 min",
+      "steps": [
+        {
+          "title": "Read the key and IV",
+          "desc": "key.txt holds a 64-hex-char AES-256 key and a 32-hex-char IV.",
+          "cmd": "cat key.txt"
+        },
+        {
+          "title": "Decrypt with OpenSSL",
+          "desc": "Pass the key to -K and the IV to -iv (both hex). Replace the placeholders with the real values.",
+          "cmd": "openssl enc -d -aes-256-cbc -in secret.enc -out secret.txt -K <key-hex> -iv <iv-hex>"
+        },
+        {
+          "title": "Read the flag",
+          "desc": "The decrypted file contains the SIS{...} flag.",
+          "cmd": "cat secret.txt"
+        }
+      ]
+    },
+    {
+      "id": "08",
+      "slug": "08-rsa-decrypt",
+      "title": "RSA Decrypt (private key)",
+      "section": "Section 6 - Asymmetric Key Cryptography",
+      "difficulty": 2,
+      "tools": [
+        "openssl"
+      ],
+      "brief": "A file encrypted for an RSA public key. You hold the private key - decrypt it.",
+      "files": [
+        "private.pem",
+        "message.enc"
+      ],
+      "hint": "message.enc was encrypted with an RSA public key. You hold the matching\nPRIVATE key (private.pem) - use it to decrypt.\nopenssl pkeyutl -decrypt -inkey private.pem -in message.enc\n",
+      "flag_pbkdf2": "1004261351a0c6251746ccc41e641f0aebf7d46a35d679b3d541e02ebd27d639",
+      "category": "Encryption & Decryption",
+      "scenario": "You obtained an RSA private key and a small file that was encrypted for the matching public key. Whatever the public key locked, only this private key can open - so the file decrypts cleanly.",
+      "objective": "Use the RSA private key to decrypt message.enc and read the flag.",
+      "est_time": "~7 min",
+      "steps": [
+        {
+          "title": "Confirm what you have",
+          "desc": "private.pem is the RSA private key; message.enc is the ciphertext.",
+          "cmd": "openssl pkey -in private.pem -noout -text | head -3"
+        },
+        {
+          "title": "Decrypt with the private key",
+          "desc": "pkeyutl -decrypt reverses the public-key encryption.",
+          "cmd": "openssl pkeyutl -decrypt -inkey private.pem -in message.enc"
+        },
+        {
+          "title": "Read the flag",
+          "desc": "The recovered plaintext carries the SIS{...} flag.",
+          "cmd": ""
+        }
+      ]
+    },
+    {
+      "id": "09",
+      "slug": "09-hybrid",
+      "title": "Hybrid Encryption (RSA + AES)",
+      "section": "Section 6 - Asymmetric Key Cryptography",
+      "difficulty": 2,
+      "tools": [
+        "openssl"
+      ],
+      "brief": "An RSA-wrapped AES key plus an AES-encrypted blob - the TLS pattern. Unwrap, then decrypt.",
+      "files": [
+        "private.pem",
+        "session_key.enc",
+        "data.enc",
+        "iv.txt"
+      ],
+      "hint": "Hybrid encryption (the TLS pattern):\n - session_key.enc = an AES key encrypted with RSA.\n - data.enc        = the data, encrypted with AES-256-CBC using that key.\n1) RSA-decrypt session_key.enc with private.pem -> a 64-hex AES key.\n2) AES-decrypt data.enc with that key (-K) and the IV in iv.txt.\n",
+      "flag_pbkdf2": "d225c17ddf0195ce15bf1b888bf7ea55f50d8f93a43e90aadd645449d84555e6",
+      "category": "Encryption & Decryption",
+      "scenario": "A captured payload uses hybrid encryption - exactly how TLS works. A random AES session key was wrapped with RSA, and the bulk data was encrypted with that AES key. You hold the RSA private key, so you can unwrap the session key and then decrypt the data.",
+      "objective": "RSA-decrypt the AES session key, then AES-decrypt the data blob to read the flag.",
+      "est_time": "~10 min",
+      "steps": [
+        {
+          "title": "Recover the AES session key with RSA",
+          "desc": "The result is a 64-hex-character AES key.",
+          "cmd": "openssl pkeyutl -decrypt -inkey private.pem -in session_key.enc -out sk.txt\ncat sk.txt"
+        },
+        {
+          "title": "Read the IV",
+          "desc": "iv.txt holds the AES initialisation vector.",
+          "cmd": "cat iv.txt"
+        },
+        {
+          "title": "Decrypt the data with AES",
+          "desc": "Feed the recovered key to -K and the IV to -iv.",
+          "cmd": "openssl enc -d -aes-256-cbc -in data.enc -K $(cat sk.txt) -iv <iv-hex>"
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "slug": "10-md5-crack",
+      "title": "Hash Crack - MD5",
+      "section": "Section 7 - Hashing Algorithms",
+      "difficulty": 2,
+      "tools": [
+        "hashid",
+        "hashcat",
+        "john"
+      ],
+      "brief": "An MD5 password hash from a database dump. Identify it and crack it with the wordlist.",
+      "files": [
+        "hash.txt",
+        "wordlist.txt"
+      ],
+      "hint": "Identify the hash, then crack it against wordlist.txt.\n  hashid hash.txt\n  hashcat -m 0 -a 0 hash.txt wordlist.txt --show\n  john --format=raw-md5 --wordlist=wordlist.txt hash.txt\nThe cracked word goes inside the flag braces: SIS{crackedword}\n",
+      "flag_pbkdf2": "c4acf076c63b22b9399b4f0de989b185b07bd1709fb5cb70647c4c72312e3cd2",
+      "category": "Hashing & Integrity",
+      "scenario": "You extracted a password hash from a leaked database dump during an authorised assessment. Hashes cannot be reversed, but weak passwords fall to a dictionary attack: hash every word in a list and compare. Identify the algorithm first, then crack it.",
+      "objective": "Identify the hash type, crack it against the wordlist; the cracked password is the flag.",
+      "est_time": "~10 min",
+      "steps": [
+        {
+          "title": "Identify the hash",
+          "desc": "A 32-hex-character value is MD5.",
+          "cmd": "hashid hash.txt"
+        },
+        {
+          "title": "Crack it with the wordlist",
+          "desc": "Hashcat mode 0 is MD5. John works too if hashcat has no GPU.",
+          "cmd": "hashcat -m 0 -a 0 hash.txt wordlist.txt --show\n# or:\njohn --format=raw-md5 --wordlist=wordlist.txt hash.txt"
+        },
+        {
+          "title": "Wrap the cracked word",
+          "desc": "Submit the recovered password as SIS{crackedword}.",
+          "cmd": "hashcat -m 0 hash.txt --show"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "slug": "11-sha1-crack",
+      "title": "Hash Crack - SHA-1",
+      "section": "Section 7 - Hashing Algorithms",
+      "difficulty": 2,
+      "tools": [
+        "hashid",
+        "hashcat",
+        "john"
+      ],
+      "brief": "A SHA-1 password hash. Confirm the type and crack it with the wordlist.",
+      "files": [
+        "hash.txt",
+        "wordlist.txt"
+      ],
+      "hint": "Identify the hash, then crack it against wordlist.txt.\n  hashid hash.txt\n  hashcat -m 100 -a 0 hash.txt wordlist.txt --show\n  john --format=raw-sha1 --wordlist=wordlist.txt hash.txt\nThe cracked word goes inside the flag braces: SIS{crackedword}\n",
+      "flag_pbkdf2": "6df7ae0e0f2d5413d6b11cac9ff208690de6827ddc6d3bd849a0a779280540ad",
+      "category": "Hashing & Integrity",
+      "scenario": "A second password hash turned up in the same dump, but it is a different algorithm. Confirm the type, then run the same style of dictionary attack against it.",
+      "objective": "Identify the hash type, crack it against the wordlist; the cracked password is the flag.",
+      "est_time": "~10 min",
+      "steps": [
+        {
+          "title": "Identify the hash",
+          "desc": "A 40-hex-character value is SHA-1.",
+          "cmd": "hashid hash.txt"
+        },
+        {
+          "title": "Crack it with the wordlist",
+          "desc": "Hashcat mode 100 is SHA-1 (or use John).",
+          "cmd": "hashcat -m 100 -a 0 hash.txt wordlist.txt --show\n# or:\njohn --format=raw-sha1 --wordlist=wordlist.txt hash.txt"
+        },
+        {
+          "title": "Wrap the cracked word",
+          "desc": "Submit the recovered password as SIS{crackedword}.",
+          "cmd": "hashcat -m 100 hash.txt --show"
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "slug": "12-integrity",
+      "title": "Integrity Check (SHA-256)",
+      "section": "Section 7 - Hashing Algorithms",
+      "difficulty": 2,
+      "tools": [
+        "sha256sum",
+        "python3"
+      ],
+      "brief": "An original file and a possibly tampered copy. Use SHA-256 to prove what changed.",
+      "files": [
+        "original.txt",
+        "tampered.txt",
+        "flag.enc",
+        "unlock.py"
+      ],
+      "hint": "One of the two files was tampered with. They look almost identical.\n1) sha256sum original.txt tampered.txt  (the hashes differ)\n2) diff them to see what changed (report it).\n3) Prove you computed it: python3 unlock.py <sha256-of-tampered.txt>\n",
+      "flag_pbkdf2": "c9a3d7ed9ac0c41afd8bdefdcabeb2c0dff00a6b3e2c40e9273e2149648f1b40",
+      "category": "Hashing & Integrity",
+      "scenario": "A wire-transfer instruction may have been altered in transit. A hash is a fingerprint of a file - change a single byte and the whole hash changes (the avalanche effect). Compare the two files with SHA-256 to prove whether one was tampered with and identify the altered field.",
+      "objective": "Prove the files differ with SHA-256, identify the change, and unlock the flag.",
+      "est_time": "~7 min",
+      "steps": [
+        {
+          "title": "Hash both files",
+          "desc": "The two SHA-256 values will not match.",
+          "cmd": "sha256sum original.txt tampered.txt"
+        },
+        {
+          "title": "Find exactly what changed",
+          "desc": "A single field (the amount) was altered.",
+          "cmd": "diff original.txt tampered.txt"
+        },
+        {
+          "title": "Unlock the flag",
+          "desc": "Feed the SHA-256 of the tampered file to the unlocker.",
+          "cmd": "python3 unlock.py <sha256-of-tampered.txt>"
+        }
+      ]
+    }
+  ]
+}

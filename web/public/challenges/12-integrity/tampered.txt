@@ -1,0 +1,6 @@
+SIS Secure Bank - Wire Transfer Instruction
+Beneficiary: Shridhar Infosec Solutions
+Account No : 2736991429
+Amount     : Rs 5000000
+Reference  : CEH v13 training invoice
+Authorised : yes
