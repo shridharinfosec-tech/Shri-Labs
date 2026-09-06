@@ -3,6 +3,9 @@
 .lab/sessions.json
 .lab/state.json
 .lab/progress/
+.lab/.session_secret
+.env
+.env.local
 *.tmp
 
 # --- python cache ---

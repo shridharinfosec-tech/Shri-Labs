@@ -44,9 +44,12 @@ CH = ROOT / "challenges"
 LAB = ROOT / ".lab"
 ASSETS = ROOT / "assets"
 MANIFEST = LAB / "manifest.json"
-USERS_FILE = LAB / "users.json"
-SESSIONS_FILE = LAB / "sessions.json"
-PROGRESS_DIR = LAB / "progress"
+# Runtime data (accounts / sessions / progress). Defaults to .lab for local use;
+# on a hosted deploy point SIS_DATA_DIR at a persistent volume so it survives restarts.
+DATA_DIR = Path(os.environ.get("SIS_DATA_DIR") or str(LAB))
+USERS_FILE = DATA_DIR / "users.json"
+SESSIONS_FILE = DATA_DIR / "sessions.json"
+PROGRESS_DIR = DATA_DIR / "progress"
 
 
 # --------------------------------------------------------------------------
@@ -80,110 +83,94 @@ def _write_json(path, data):
 
 
 # --------------------------------------------------------------------------
-# Accounts (username + salted-PBKDF2 password), stored locally
+# Accounts + sessions. Storage goes through store.py (Supabase when configured,
+# local JSON files otherwise). Sessions are STATELESS signed cookies.
 # --------------------------------------------------------------------------
+import store  # noqa: E402  (sibling module)
+
 USERNAME_RE = re.compile(r"^[A-Za-z0-9 ._-]{3,30}$")   # letters, numbers, space, . _ -
 PW_ITERS = 200_000
+SESSION_TTL = 30 * 24 * 3600   # 30 days
+
+
+def _session_secret():
+    s = os.environ.get("SESSION_SECRET")
+    if s:
+        return s.encode()
+    f = LAB / ".session_secret"            # local dev: persist a random secret
+    try:
+        if f.exists():
+            return f.read_text().strip().encode()
+        val = secrets.token_hex(32)
+        f.write_text(val)
+        return val.encode()
+    except Exception:
+        return b"sis-dev-secret"
+
+
+SESSION_SECRET = _session_secret()
 
 
 def norm_username(u):
     return " ".join((u or "").split())   # trim ends + collapse inner whitespace
 
 
-def load_users():
-    return _read_json(USERS_FILE, {})
-
-
-def save_users(users):
-    _write_json(USERS_FILE, users)
+def valid_username(u):
+    return bool(USERNAME_RE.match(u or ""))
 
 
 def hash_pw(password, salt_hex):
     return hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt_hex), PW_ITERS).hex()
 
 
-def valid_username(u):
-    return bool(USERNAME_RE.match(u or ""))
-
-
 def create_user(username, password):
-    """Returns (ok, message)."""
+    """Validate, hash and store a new account. Returns (ok, message)."""
     if not valid_username(username):
         return False, "Username must be 3-30 characters (letters, numbers, spaces, . _ - )."
     if len(password or "") < 6:
         return False, "Password must be at least 6 characters."
-    with STATE_LOCK:
-        users = load_users()
-        if username.lower() in {u.lower() for u in users}:
-            return False, "That username is already taken."
-        salt = secrets.token_hex(16)
-        users[username] = {"salt": salt, "hash": hash_pw(password, salt),
-                           "created": time.strftime("%Y-%m-%d %H:%M:%S")}
-        save_users(users)
-    return True, "ok"
+    salt = secrets.token_hex(16)
+    return store.create_user(username, salt, hash_pw(password, salt))
 
 
 def verify_user(username, password):
-    """Return the canonical stored username on success (case-insensitive), else None."""
-    users = load_users()
-    key = next((u for u in users if u.lower() == (username or "").lower()), None)
-    if not key:
+    """Return the canonical stored username on success, else None."""
+    rec = store.get_user(norm_username(username))
+    if not rec:
         return None
-    rec = users[key]
-    return key if hmac.compare_digest(hash_pw(password, rec["salt"]), rec["hash"]) else None
+    return rec["username"] if hmac.compare_digest(hash_pw(password, rec["salt"]), rec["pw_hash"]) else None
 
 
-# --------------------------------------------------------------------------
-# Sessions (token cookie -> username), persisted so a restart keeps logins
-# --------------------------------------------------------------------------
-def load_sessions():
-    return _read_json(SESSIONS_FILE, {})
-
-
-def save_sessions(s):
-    _write_json(SESSIONS_FILE, s)
-
-
-def new_session(username):
-    token = secrets.token_urlsafe(32)
-    with STATE_LOCK:
-        s = load_sessions()
-        s[token] = {"user": username, "created": time.time()}
-        save_sessions(s)
-    return token
+# ---- stateless signed-cookie sessions (payload.signature, HMAC-SHA256) ----
+def sign_session(username):
+    exp = int(time.time()) + SESSION_TTL
+    payload = base64.urlsafe_b64encode(f"{username}|{exp}".encode()).decode().rstrip("=")
+    sig = hmac.new(SESSION_SECRET, payload.encode(), hashlib.sha256).hexdigest()[:32]
+    return f"{payload}.{sig}"
 
 
 def session_user(token):
-    if not token:
+    if not token or "." not in token:
         return None
-    rec = load_sessions().get(token)
-    return rec["user"] if rec else None
+    payload, sig = token.rsplit(".", 1)
+    good = hmac.new(SESSION_SECRET, payload.encode(), hashlib.sha256).hexdigest()[:32]
+    if not hmac.compare_digest(sig, good):
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)).decode()
+        username, exp = raw.rsplit("|", 1)
+    except Exception:
+        return None
+    return username if int(exp) >= int(time.time()) else None
 
 
-def end_session(token):
-    if not token:
-        return
-    with STATE_LOCK:
-        s = load_sessions()
-        if token in s:
-            del s[token]
-            save_sessions(s)
-
-
-# --------------------------------------------------------------------------
-# Per-user progress
-# --------------------------------------------------------------------------
-def _progress_path(user):
-    safe = re.sub(r"[^A-Za-z0-9_]", "_", user)[:40]
-    return PROGRESS_DIR / f"{safe}.json"
-
-
+# ---- per-user progress (via store) ----
 def load_state(user):
-    return _read_json(_progress_path(user), {"solved": {}, "attempts": {}})
+    return store.get_progress(user)
 
 
 def save_state(user, state):
-    _write_json(_progress_path(user), state)
+    store.save_progress(user, state)
 
 
 MANI = load_manifest()
@@ -857,7 +844,7 @@ class Handler(BaseHTTPRequestHandler):
             password = form.get("password", [""])[0]
             key = verify_user(username, password)
             if key:
-                return self._redirect("/", cookie=setcookie.format(new_session(key)))
+                return self._redirect("/", cookie=setcookie.format(sign_session(key)))
             return self._send(login_page("Invalid username or password.", username))
 
         if u.path == "/register":
@@ -869,11 +856,9 @@ class Handler(BaseHTTPRequestHandler):
             ok, msg = create_user(username, password)
             if not ok:
                 return self._send(register_page(msg, username))
-            return self._redirect("/", cookie=setcookie.format(new_session(username)))
+            return self._redirect("/", cookie=setcookie.format(sign_session(username)))
 
         if u.path == "/logout":
-            _, tok = self._current()
-            end_session(tok)
             return self._redirect("/login", cookie="sis_session=; Path=/; Max-Age=0")
 
         # ---- everything else needs a login ----

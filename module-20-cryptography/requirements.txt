@@ -1,0 +1,2 @@
+# The portal uses only the Python standard library (urllib for Supabase's REST
+# API), so there are no third-party dependencies to install.
